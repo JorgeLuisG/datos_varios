@@ -4,7 +4,8 @@ from search import cargar_datos, buscar
 USUARIOS = {
     "admin": "pass0",
     "Gurbano": "pass1",
-    "isora": "pass2"
+    "Rfornetti": "pass2",
+    "Maguaza": "pass3"
 }
 
 # estado inicial
