@@ -1,38 +1,29 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-from search import cargar_datos, buscar
+from auth import (
+    obtener_credenciales,
+    obtener_rol
+)
 
-# Usuarios
-credentials = {
-    "usernames": {
-        "admin": {
-            "name": "Administrador",
-            "password": "pass0"
-        },
-        "Gurbano": {
-            "name": "Gurbano",
-            "password": "pass1"
-        },
-        "Rfornetti": {
-            "name": "Rfornetti",
-            "password": "pass2"
-        },
-        "Maguaza": {
-            "name": "Maguaza",
-            "password": "pass3"
-        }
-    }
-}
+from search import (
+    cargar_datos,
+    buscar
+)
+
+# -----------------------------
+# Login
+# -----------------------------
+
+credentials = obtener_credenciales()
 
 authenticator = stauth.Authenticate(
     credentials,
-    "buscador_cookie",
-    "abcdef123456",
+    "organizador_cookie",
+    "abcdef123456789",
     cookie_expiry_days=30
 )
 
-# Login
 authenticator.login()
 
 if st.session_state["authentication_status"] is False:
@@ -43,18 +34,35 @@ if st.session_state["authentication_status"] is None:
     st.warning("Ingrese usuario y contraseña")
     st.stop()
 
+# -----------------------------
 # Usuario autenticado
+# -----------------------------
+
+username = st.session_state["username"]
 nombre = st.session_state["name"]
-usuario = st.session_state["username"]
+
+rol = obtener_rol(username)
 
 st.title("Buscador de Tablas")
 
-st.sidebar.write(f"Usuario: {nombre}")
+st.sidebar.success(f"Usuario: {nombre}")
+st.sidebar.write(f"Rol: {rol}")
 
-authenticator.logout("Cerrar sesión", "sidebar")
+authenticator.logout(
+    "Cerrar sesión",
+    "sidebar"
+)
 
+# -----------------------------
 # Cargar datos
-cuil_contratista, contratos, cronograma_poda, certificacion_poda = cargar_datos()
+# -----------------------------
+
+(
+    cuil_contratista,
+    contratos,
+    cronograma_poda,
+    certificacion_poda
+) = cargar_datos()
 
 dfs = {
     "Cuil Contratista": cuil_contratista,
@@ -63,23 +71,80 @@ dfs = {
     "Certificación Poda": certificacion_poda
 }
 
+# -----------------------------
+# Permisos
+# -----------------------------
+
+PERMISOS = {
+    "admin": [
+        "Cuil Contratista",
+        "Contratos",
+        "Cronograma Poda",
+        "Certificación Poda"
+    ],
+
+    "usuario": [
+        "Contratos",
+        "Cronograma Poda"
+    ]
+}
+
+tablas_permitidas = PERMISOS.get(
+    rol,
+    []
+)
+
+dfs = {
+    nombre_tabla: df
+    for nombre_tabla, df in dfs.items()
+    if nombre_tabla in tablas_permitidas
+}
+
+# -----------------------------
+# Menú
+# -----------------------------
+
 opcion = st.sidebar.selectbox(
     "Seleccionar tabla",
     ["Todas"] + list(dfs.keys())
 )
 
-query = st.text_input("Buscar...")
+query = st.text_input(
+    "Buscar..."
+)
+
+# -----------------------------
+# Mostrar datos
+# -----------------------------
 
 if opcion != "Todas":
-    dfs = {opcion: dfs[opcion]}
+    dfs = {
+        opcion: dfs[opcion]
+    }
 
 if query:
-    resultados = buscar(query, dfs)
+
+    resultados = buscar(
+        query,
+        dfs
+    )
 
     for nombre_tabla, df in resultados:
+
         st.subheader(nombre_tabla)
-        st.dataframe(df, use_container_width=True)
+
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
+
 else:
+
     for nombre_tabla, df in dfs.items():
+
         st.subheader(nombre_tabla)
-        st.dataframe(df, use_container_width=True)
+
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
