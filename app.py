@@ -1,59 +1,60 @@
 import streamlit as st
+import streamlit_authenticator as stauth
+
 from search import cargar_datos, buscar
 
-USUARIOS = {
-    "admin": "pass0",
-    "Gurbano": "pass1",
-    "Rfornetti": "pass2",
-    "Maguaza": "pass3"
+# Usuarios
+credentials = {
+    "usernames": {
+        "admin": {
+            "name": "Administrador",
+            "password": "pass0"
+        },
+        "Gurbano": {
+            "name": "Gurbano",
+            "password": "pass1"
+        },
+        "Rfornetti": {
+            "name": "Rfornetti",
+            "password": "pass2"
+        },
+        "Maguaza": {
+            "name": "Maguaza",
+            "password": "pass3"
+        }
+    }
 }
 
-# estado inicial
-if "login" not in st.session_state:
-    st.session_state["login"] = False
-if "usuario" not in st.session_state:
-    st.session_state["usuario"] = ""
-
-def login():
-    st.title("Login")
-
-    usuario = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
-
-    if st.button("Ingresar"):
-        if usuario in USUARIOS and USUARIOS[usuario] == password:
-            st.session_state["login"] = True
-            st.session_state["usuario"] = usuario
-            st.rerun()
-        else:
-            st.error("Usuario o contraseña incorrectos")
-
-# 🔐 protección
-if not st.session_state["login"]:
-    login()
-    st.stop()
-
-# 👇 recién acá el usuario existe
-st.title("Buscador de Tablas")
-
-st.sidebar.write(f"Usuario: {st.session_state['usuario']}")
-
-# logout
-if st.sidebar.button("Cerrar sesión"):
-    st.session_state["login"] = False
-    st.session_state["usuario"] = ""
-    st.rerun()
-
-# cargar datos
-cuil_contratista, contratos, cronograma_poda, certificacion_poda = cargar_datos()
-
-# menú
-opcion = st.sidebar.selectbox(
-    "Seleccionar tabla",
-    ["Todas", "Cuil Contratista", "Contratos", "Cronograma Poda", "Certificación Poda"]
+authenticator = stauth.Authenticate(
+    credentials,
+    "buscador_cookie",
+    "abcdef123456",
+    cookie_expiry_days=30
 )
 
-query = st.text_input("Buscar...")
+# Login
+authenticator.login()
+
+if st.session_state["authentication_status"] is False:
+    st.error("Usuario o contraseña incorrectos")
+    st.stop()
+
+if st.session_state["authentication_status"] is None:
+    st.warning("Ingrese usuario y contraseña")
+    st.stop()
+
+# Usuario autenticado
+nombre = st.session_state["name"]
+usuario = st.session_state["username"]
+
+st.title("Buscador de Tablas")
+
+st.sidebar.write(f"Usuario: {nombre}")
+
+authenticator.logout("Cerrar sesión", "sidebar")
+
+# Cargar datos
+cuil_contratista, contratos, cronograma_poda, certificacion_poda = cargar_datos()
 
 dfs = {
     "Cuil Contratista": cuil_contratista,
@@ -62,16 +63,23 @@ dfs = {
     "Certificación Poda": certificacion_poda
 }
 
+opcion = st.sidebar.selectbox(
+    "Seleccionar tabla",
+    ["Todas"] + list(dfs.keys())
+)
+
+query = st.text_input("Buscar...")
+
 if opcion != "Todas":
     dfs = {opcion: dfs[opcion]}
 
 if query:
     resultados = buscar(query, dfs)
 
-    for nombre, df in resultados:
-        st.subheader(nombre)
-        st.dataframe(df)
+    for nombre_tabla, df in resultados:
+        st.subheader(nombre_tabla)
+        st.dataframe(df, use_container_width=True)
 else:
-    for nombre, df in dfs.items():
-        st.subheader(nombre)
-        st.dataframe(df)
+    for nombre_tabla, df in dfs.items():
+        st.subheader(nombre_tabla)
+        st.dataframe(df, use_container_width=True)
