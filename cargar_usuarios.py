@@ -1,7 +1,9 @@
 import streamlit_authenticator as stauth
 from db import get_connection
 
+
 def cargar_usuarios_iniciales():
+
     passwords = [
         "pass0",
         "pass1",
@@ -29,11 +31,14 @@ def cargar_usuarios_iniciales():
                 password,
                 rol
             )
-            VALUES (%s,%s,%s,%s)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (username)
             DO NOTHING
         """, usuario)
 
     conn.commit()
+
     cur.close()
     conn.close()
+
+    print("Usuarios iniciales verificados")

@@ -21,7 +21,6 @@ def obtener_credenciales():
     }
 
     for username, nombre, password in rows:
-
         credentials["usernames"][username] = {
             "name": nombre,
             "password": password
