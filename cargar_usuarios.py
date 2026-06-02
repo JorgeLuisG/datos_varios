@@ -1,23 +1,33 @@
-import streamlit_authenticator as stauth
 from db import get_connection
 
 
 def cargar_usuarios_iniciales():
 
-    passwords = [
-        "pass0",
-        "pass1",
-        "pass2",
-        "pass3"
-    ]
-
-    hashed_passwords = stauth.Hasher(passwords).generate()
-
     usuarios = [
-        ("admin", "Administrador", hashed_passwords[0], "admin"),
-        ("Gurbano", "Gurbano", hashed_passwords[1], "usuario"),
-        ("Rfornetti", "Rfornetti", hashed_passwords[2], "usuario"),
-        ("Maguaza", "Maguaza", hashed_passwords[3], "usuario")
+        (
+            "admin",
+            "Administrador",
+            "$2b$12$lTk2/hDZprrnwwbp1eL5cuCDjgx1tIPo2Mfx8wIpuFG.oJxezeYLO",
+            "admin"
+        ),
+        (
+            "Gurbano",
+            "Gurbano",
+            "$2b$12$BjXgNz4j6426z1eh8PmryOUKS0BYnlCrWv8.9OdEFGmzzC6/O7FUu",
+            "usuario"
+        ),
+        (
+            "Rfornetti",
+            "Rfornetti",
+            "$2b$12$Qe8wEi8X8jU.WghBRE9ykuUoXuynXy3o03tj4jN0UHwg7EpvkRw4.",
+            "usuario"
+        ),
+        (
+            "Maguaza",
+            "Maguaza",
+            "$2b$12$15ml7O2oguYjh1AqAYJuJe52eADK9UAP/9OoGjyB.iCxikO//ARkm",
+            "usuario"
+        )
     ]
 
     conn = get_connection()
@@ -41,4 +51,4 @@ def cargar_usuarios_iniciales():
     cur.close()
     conn.close()
 
-    print("Usuarios iniciales verificados")
+    print("Usuarios cargados")
