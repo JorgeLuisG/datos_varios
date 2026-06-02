@@ -13,3 +13,5 @@ from auth import (
 )
 
 credentials = obtener_credenciales()
+st.write("Aplicación iniciada")
+st.write(credentials)
