@@ -2,96 +2,219 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 from models.init_db import init_db
-from auth import obtener_credenciales, obtener_rol
-from services.contactos import get_contactos, create_contacto, update_contacto, delete_contacto
+from bootstrap import inicializar_datos
 
-# -------------------
-# INIT DB
-# -------------------
+from auth import (
+    obtener_credenciales,
+    obtener_rol
+)
+
+from services.database import get_table
+
+from services.crud import (
+    insert_row,
+    update_row,
+    delete_row
+)
+
+# ----------------------------------
+# INICIALIZACIÓN
+# ----------------------------------
+
 init_db()
+inicializar_datos()
 
-# -------------------
+# ----------------------------------
 # LOGIN
-# -------------------
+# ----------------------------------
+
 credentials = obtener_credenciales()
 
 authenticator = stauth.Authenticate(
     credentials,
-    "cookie",
-    "secret",
+    "organizador_cookie",
+    "abcdef123456789",
     cookie_expiry_days=30
 )
 
 authenticator.login()
 
 if st.session_state.get("authentication_status") is False:
-    st.error("Login incorrecto")
+    st.error("Usuario o contraseña incorrectos")
     st.stop()
 
 if st.session_state.get("authentication_status") is None:
-    st.warning("Login requerido")
+    st.warning("Ingrese usuario y contraseña")
     st.stop()
 
-user = st.session_state["username"]
-rol = obtener_rol(user)
+username = st.session_state["username"]
+nombre = st.session_state["name"]
 
-st.sidebar.success(user)
-authenticator.logout("Salir", "sidebar")
+rol = obtener_rol(username)
 
-# -------------------
-# DATA
-# -------------------
-df = get_contactos()
+# ----------------------------------
+# SIDEBAR
+# ----------------------------------
 
-st.title("Contactos Internos")
+st.sidebar.success(f"Usuario: {nombre}")
+st.sidebar.write(f"Rol: {rol}")
 
-st.dataframe(df, use_container_width=True)
+authenticator.logout(
+    "Cerrar sesión",
+    "sidebar"
+)
 
-# -------------------
-# CREATE
-# -------------------
-st.subheader("Agregar")
+# ----------------------------------
+# TABLAS DISPONIBLES
+# ----------------------------------
 
-with st.form("add"):
-    sector = st.text_input("Sector")
-    usuario = st.text_input("Usuario")
-    interno = st.text_input("Interno")
+TABLAS = {
+    "Cuil Contratista": "cuil_contratista",
+    "Contratos": "contratos",
+    "Cronograma Poda": "cronograma_poda",
+    "Certificación Poda": "certificacion_poda",
+    "Contactos Internos": "contactos_internos"
+}
 
-    if st.form_submit_button("Guardar"):
-        create_contacto({
-            "sector": sector,
-            "usuario": usuario,
-            "interno": interno
-        })
+tabla_nombre = st.sidebar.selectbox(
+    "Seleccionar tabla",
+    list(TABLAS.keys())
+)
+
+tabla_db = TABLAS[tabla_nombre]
+
+# ----------------------------------
+# CARGAR DATOS
+# ----------------------------------
+
+df = get_table(tabla_db)
+
+st.title(tabla_nombre)
+
+st.write(f"Registros encontrados: {len(df)}")
+
+# ----------------------------------
+# PESTAÑAS
+# ----------------------------------
+
+tab1, tab2, tab3, tab4 = st.tabs([
+    "Datos",
+    "Agregar",
+    "Editar",
+    "Eliminar"
+])
+
+# ----------------------------------
+# DATOS
+# ----------------------------------
+
+with tab1:
+
+    st.dataframe(
+        df,
+        use_container_width=True
+    )
+
+# ----------------------------------
+# AGREGAR
+# ----------------------------------
+
+with tab2:
+
+    st.subheader("Agregar registro")
+
+    columnas = [
+        c for c in df.columns
+        if c != "id"
+    ]
+
+    with st.form("agregar"):
+
+        datos = {}
+
+        for columna in columnas:
+            datos[columna] = st.text_input(columna)
+
+        guardar = st.form_submit_button(
+            "Guardar"
+        )
+
+        if guardar:
+
+            insert_row(
+                tabla_db,
+                datos
+            )
+
+            st.success(
+                "Registro agregado"
+            )
+
+            st.rerun()
+
+# ----------------------------------
+# EDITAR
+# ----------------------------------
+
+with tab3:
+
+    st.subheader("Editar registro")
+
+    id_editar = st.number_input(
+        "ID",
+        min_value=1,
+        step=1
+    )
+
+    with st.form("editar"):
+
+        datos = {}
+
+        for columna in columnas:
+            datos[columna] = st.text_input(columna)
+
+        actualizar = st.form_submit_button(
+            "Actualizar"
+        )
+
+        if actualizar:
+
+            update_row(
+                tabla_db,
+                id_editar,
+                datos
+            )
+
+            st.success(
+                "Registro actualizado"
+            )
+
+            st.rerun()
+
+# ----------------------------------
+# ELIMINAR
+# ----------------------------------
+
+with tab4:
+
+    st.subheader("Eliminar registro")
+
+    id_eliminar = st.number_input(
+        "ID a eliminar",
+        min_value=1,
+        step=1,
+        key="delete_id"
+    )
+
+    if st.button("Eliminar"):
+
+        delete_row(
+            tabla_db,
+            id_eliminar
+        )
+
+        st.success(
+            "Registro eliminado"
+        )
+
         st.rerun()
-
-# -------------------
-# UPDATE
-# -------------------
-st.subheader("Editar")
-
-id_edit = st.number_input("ID", min_value=1)
-
-with st.form("edit"):
-    sector = st.text_input("Sector")
-    usuario = st.text_input("Usuario")
-    interno = st.text_input("Interno")
-
-    if st.form_submit_button("Actualizar"):
-        update_contacto(id_edit, {
-            "sector": sector,
-            "usuario": usuario,
-            "interno": interno
-        })
-        st.rerun()
-
-# -------------------
-# DELETE
-# -------------------
-st.subheader("Eliminar")
-
-id_del = st.number_input("ID eliminar", min_value=1)
-
-if st.button("Eliminar"):
-    delete_contacto(id_del)
-    st.rerun()

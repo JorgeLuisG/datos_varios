@@ -1,5 +1,5 @@
 from db import get_connection
-from bootstrap import inicializar_datos
+
 
 def init_db():
 
@@ -55,7 +55,7 @@ def init_db():
         interno TEXT
     );
     """)
-    inicializar_datos()
+   
 
     conn.commit()
 
