@@ -1,34 +1,26 @@
 from db import get_connection
 
-
 def obtener_credenciales():
 
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT
-            username,
-            nombre,
-            password
+        SELECT username, nombre, password
         FROM usuarios
     """)
 
     rows = cur.fetchall()
 
-    credentials = {
-        "usernames": {}
-    }
+    credentials = {"usernames": {}}
 
-    for username, nombre, password in rows:
-        credentials["usernames"][username] = {
-            "name": nombre,
-            "password": password
+    for u, n, p in rows:
+        credentials["usernames"][u] = {
+            "name": n,
+            "password": p
         }
 
-    cur.close()
     conn.close()
-
     return credentials
 
 
@@ -37,18 +29,9 @@ def obtener_rol(username):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT rol
-        FROM usuarios
-        WHERE username = %s
-    """, (username,))
-
+    cur.execute("SELECT rol FROM usuarios WHERE username=%s", (username,))
     row = cur.fetchone()
 
-    cur.close()
     conn.close()
 
-    if row:
-        return row[0]
-
-    return None
+    return row[0] if row else None

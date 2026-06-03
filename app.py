@@ -1,172 +1,92 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-from crear_tabla import crear_tabla_usuarios
-from cargar_usuarios import cargar_usuarios_iniciales
+from crear_tablas import crear_tablas
+from search import cargar_datos
+from auth import obtener_credenciales, obtener_rol
+from crud import insertar, actualizar, eliminar
 
-from auth import (
-    obtener_credenciales,
-    obtener_rol
-)
+# -------------------
+# INIT BD
+# -------------------
+crear_tablas()
 
-from search import (
-    cargar_datos,
-    buscar
-)
-
-# -----------------------------
-# Inicialización BD
-# -----------------------------
-
-crear_tabla_usuarios()
-cargar_usuarios_iniciales()
-
-# -----------------------------
-# Credenciales
-# -----------------------------
-
+# -------------------
+# LOGIN
+# -------------------
 credentials = obtener_credenciales()
-
-# -----------------------------
-# Login
-# -----------------------------
 
 authenticator = stauth.Authenticate(
     credentials,
-    "organizador_cookie",
-    "abcdef123456789",
+    "cookie",
+    "secret",
     cookie_expiry_days=30
 )
 
-try:
-    authenticator.login()
-except Exception as e:
-    st.error(f"Error login: {e}")
-    st.stop()
-
-# -----------------------------
-# Estado login
-# -----------------------------
+authenticator.login()
 
 if st.session_state.get("authentication_status") is False:
-    st.error("Usuario o contraseña incorrectos")
+    st.error("Login incorrecto")
     st.stop()
 
 if st.session_state.get("authentication_status") is None:
-    st.warning("Ingrese usuario y contraseña")
+    st.warning("Login requerido")
     st.stop()
 
-# -----------------------------
-# Usuario autenticado
-# -----------------------------
-
 username = st.session_state["username"]
-nombre = st.session_state["name"]
-
 rol = obtener_rol(username)
 
-st.title("Buscador de Tablas")
+st.sidebar.success(f"Usuario: {username}")
+authenticator.logout("Salir", "sidebar")
 
-st.sidebar.success(f"Usuario: {nombre}")
-st.sidebar.write(f"Rol: {rol}")
+# -------------------
+# DATOS
+# -------------------
+dfs = cargar_datos()
 
-authenticator.logout(
-    "Cerrar sesión",
-    "sidebar"
-)
+tabla = st.sidebar.selectbox("Tabla", list(dfs.keys()))
+df = dfs[tabla]
 
-# -----------------------------
-# Cargar Excels
-# -----------------------------
+st.title(tabla)
+st.dataframe(df, use_container_width=True)
 
-(
-    cuil_contratista,
-    contratos,
-    cronograma_poda,
-    certificacion_poda
-) = cargar_datos()
+# -------------------
+# CRUD
+# -------------------
+st.divider()
 
-dfs = {
-    "Cuil Contratista": cuil_contratista,
-    "Contratos": contratos,
-    "Cronograma Poda": cronograma_poda,
-    "Certificación Poda": certificacion_poda
-}
+st.subheader("Agregar")
 
-# -----------------------------
-# Permisos
-# -----------------------------
+with st.form("add"):
+    data = {}
 
-PERMISOS = {
-    "admin": [
-        "Cuil Contratista",
-        "Contratos",
-        "Cronograma Poda",
-        "Certificación Poda"
-    ],
+    for col in df.columns:
+        if col != "id":
+            data[col] = st.text_input(col)
 
-    "usuario": [
-        "Contratos",
-        "Cronograma Poda"
-    ]
-}
+    if st.form_submit_button("Guardar"):
+        insertar(tabla.lower().replace(" ", "_"), data)
+        st.rerun()
 
-tablas_permitidas = PERMISOS.get(
-    rol,
-    []
-)
+st.subheader("Editar")
 
-dfs = {
-    nombre_tabla: df
-    for nombre_tabla, df in dfs.items()
-    if nombre_tabla in tablas_permitidas
-}
+id_edit = st.number_input("ID", min_value=1)
 
-# -----------------------------
-# Menú
-# -----------------------------
+with st.form("edit"):
+    data = {}
 
-opcion = st.sidebar.selectbox(
-    "Seleccionar tabla",
-    ["Todas"] + list(dfs.keys())
-)
+    for col in df.columns:
+        if col != "id":
+            data[col] = st.text_input(col)
 
-query = st.text_input(
-    "Buscar..."
-)
+    if st.form_submit_button("Actualizar"):
+        actualizar(tabla.lower().replace(" ", "_"), id_edit, data)
+        st.rerun()
 
-# -----------------------------
-# Mostrar datos
-# -----------------------------
+st.subheader("Eliminar")
 
-if opcion != "Todas":
-    dfs = {
-        opcion: dfs[opcion]
-    }
+id_del = st.number_input("ID eliminar", min_value=1)
 
-if query:
-
-    resultados = buscar(
-        query,
-        dfs
-    )
-
-    for nombre_tabla, df in resultados:
-
-        st.subheader(nombre_tabla)
-
-        st.dataframe(
-            df,
-            use_container_width=True
-        )
-
-else:
-
-    for nombre_tabla, df in dfs.items():
-
-        st.subheader(nombre_tabla)
-
-        st.dataframe(
-            df,
-            use_container_width=True
-        )
+if st.button("Eliminar"):
+    eliminar(tabla.lower().replace(" ", "_"), id_del)
+    st.rerun()
