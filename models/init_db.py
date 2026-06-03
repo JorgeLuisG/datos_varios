@@ -1,4 +1,5 @@
 from db import get_connection
+from bootstrap import inicializar_datos
 
 def init_db():
 
@@ -14,31 +15,49 @@ def init_db():
         rol TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS cuil_contratista (
+        id SERIAL PRIMARY KEY,
+        tipo TEXT,
+        empresa TEXT,
+        concepto TEXT,
+        codigo TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS contratos (
+        id SERIAL PRIMARY KEY,
+        tipo TEXT,
+        empresa TEXT,
+        contrato TEXT,
+        nro_contrato TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS cronograma_poda (
+        id SERIAL PRIMARY KEY,
+        tipo TEXT,
+        actividad TEXT,
+        periodo_inicio TEXT,
+        periodo_fin TEXT,
+        tension TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS certificacion_poda (
+        id SERIAL PRIMARY KEY,
+        tipo TEXT,
+        cuadricula_distribuidor TEXT,
+        labt TEXT,
+        lamt TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS contactos_internos (
         id SERIAL PRIMARY KEY,
         sector TEXT,
         usuario TEXT,
         interno TEXT
     );
-
-    CREATE TABLE IF NOT EXISTS contratos (
-        id SERIAL PRIMARY KEY
-    );
-
-    CREATE TABLE IF NOT EXISTS cronograma_poda (
-        id SERIAL PRIMARY KEY
-    );
-
-    CREATE TABLE IF NOT EXISTS certificacion_poda (
-        id SERIAL PRIMARY KEY
-    );
-
-    CREATE TABLE IF NOT EXISTS cuil_contratista (
-        id SERIAL PRIMARY KEY
-    );
     """)
+    inicializar_datos()
 
     conn.commit()
+
     cur.close()
     conn.close()
-    
