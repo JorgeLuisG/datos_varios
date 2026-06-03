@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-from crear_tablas import crear_tablas
+from crear_tabla import crear_tablas
 from search import cargar_datos
 from auth import obtener_credenciales, obtener_rol
 from crud import insertar, actualizar, eliminar

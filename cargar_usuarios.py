@@ -52,3 +52,9 @@ def cargar_usuarios_iniciales():
     conn.close()
 
     print("Usuarios cargados")
+
+
+
+
+
+    
