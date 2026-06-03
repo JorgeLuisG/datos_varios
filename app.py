@@ -1,15 +1,14 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
-from crear_tabla import crear_tablas
-from search import cargar_datos
+from models.init_db import init_db
 from auth import obtener_credenciales, obtener_rol
-from crud import insertar, actualizar, eliminar
+from services.contactos import get_contactos, create_contacto, update_contacto, delete_contacto
 
 # -------------------
-# INIT BD
+# INIT DB
 # -------------------
-crear_tablas()
+init_db()
 
 # -------------------
 # LOGIN
@@ -33,60 +32,66 @@ if st.session_state.get("authentication_status") is None:
     st.warning("Login requerido")
     st.stop()
 
-username = st.session_state["username"]
-rol = obtener_rol(username)
+user = st.session_state["username"]
+rol = obtener_rol(user)
 
-st.sidebar.success(f"Usuario: {username}")
+st.sidebar.success(user)
 authenticator.logout("Salir", "sidebar")
 
 # -------------------
-# DATOS
+# DATA
 # -------------------
-dfs = cargar_datos()
+df = get_contactos()
 
-tabla = st.sidebar.selectbox("Tabla", list(dfs.keys()))
-df = dfs[tabla]
+st.title("Contactos Internos")
 
-st.title(tabla)
 st.dataframe(df, use_container_width=True)
 
 # -------------------
-# CRUD
+# CREATE
 # -------------------
-st.divider()
-
 st.subheader("Agregar")
 
 with st.form("add"):
-    data = {}
-
-    for col in df.columns:
-        if col != "id":
-            data[col] = st.text_input(col)
+    sector = st.text_input("Sector")
+    usuario = st.text_input("Usuario")
+    interno = st.text_input("Interno")
 
     if st.form_submit_button("Guardar"):
-        insertar(tabla.lower().replace(" ", "_"), data)
+        create_contacto({
+            "sector": sector,
+            "usuario": usuario,
+            "interno": interno
+        })
         st.rerun()
 
+# -------------------
+# UPDATE
+# -------------------
 st.subheader("Editar")
 
 id_edit = st.number_input("ID", min_value=1)
 
 with st.form("edit"):
-    data = {}
-
-    for col in df.columns:
-        if col != "id":
-            data[col] = st.text_input(col)
+    sector = st.text_input("Sector")
+    usuario = st.text_input("Usuario")
+    interno = st.text_input("Interno")
 
     if st.form_submit_button("Actualizar"):
-        actualizar(tabla.lower().replace(" ", "_"), id_edit, data)
+        update_contacto(id_edit, {
+            "sector": sector,
+            "usuario": usuario,
+            "interno": interno
+        })
         st.rerun()
 
+# -------------------
+# DELETE
+# -------------------
 st.subheader("Eliminar")
 
 id_del = st.number_input("ID eliminar", min_value=1)
 
 if st.button("Eliminar"):
-    eliminar(tabla.lower().replace(" ", "_"), id_del)
+    delete_contacto(id_del)
     st.rerun()
